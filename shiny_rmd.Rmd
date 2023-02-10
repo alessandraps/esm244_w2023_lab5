@@ -24,7 +24,7 @@ You can embed Shiny inputs and outputs in your document. Outputs are automatical
 
 ```{r eruptions, echo=FALSE}
 inputPanel(
-  selectInput(inputId = "pick_spp", label = "Pick penguin species:",
+  checkboxGroupInput(inputId = "pick_spp", label = "Pick penguin species:",
               choices = c('Adelie!!!!' = 'Adelie',
                           'Chinstrap???' = 'Chinstrap',
                           'Gentoo'), selected = 'Adelie'),
@@ -39,8 +39,10 @@ penguin_set <- reactive({
 })
 
 renderPlot({
-  ggplot(data = penguin_set(), aes(x = flipper_length_mm, y = body_mass_g)) +
+  ggplot(data = penguin_set(), aes(x = flipper_length_mm, y = body_mass_g, color = species)) +
     geom_point(size = input$pt_size) +
+    scale_color_manual(breaks = c('Adelie', 'Chinstrap', 'Gentoo'),
+                       values = c('orange', 'green', 'blue')) +
     scale_x_continuous(limits = range(penguins$flipper_length_mm, #this is maintaining the axis the same per species
                                       na.rm = TRUE)) +
     scale_y_continuous(limits = range(penguins$body_mass_g,
