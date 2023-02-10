@@ -1,0 +1,101 @@
+---
+title: 'Lab Week 5 part 1: PCA'
+author: "Alessandra Puig-Santana"
+date: "2023-02-09"
+output: html_document
+---
+
+```{r setup, echo = TRUE, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+# Attaching packages
+library(tidyverse)
+library(here)
+
+library(ggfortify)
+library(patchwork)
+
+library(readxl)
+library(gghighlight)
+library(lubridate)
+library(plotly)
+```
+
+# Part 1: Principal component analysis (PCA)
+```{r}
+# Read in data
+
+hdi_data <- read_csv(here("data/hdi_clean.csv")) %>%
+  drop_na() %>%
+  mutate(hdicode = factor(hdicode, levels = c('Low', 'Medium', 'High', 'Very High'))) # turning hdicode from categorical to factor and making sure the levels go from the vector low to very high
+
+hdi_pca <- hdi_data %>%
+  dplyr::select(where(is.numeric)) %>% #selected all the colums that are numeric
+  scale() %>% #rescaling our data so we are removing the units of the data
+  prcomp()
+```
+
+```{r}
+loadings_df <- data.frame(hdi_pca$rotation) %>% # turned into a data frame, understanding our variables into principle components
+  mutate(axis = row.names(.))
+
+new_pts_df <- data.frame(hdi_pca$x) # new data frame to see the x of the rotations
+
+# Making a ggplot 
+
+ggplot() +
+  geom_point(data = new_pts_df, aes(x= PC1, y = PC2), color = 'blue') +
+  geom_segment(data = loadings_df, x = 0, y = 0, # creates the arrows we see with the PCA graphs
+               aes(xend = PC1, yend = PC2, group = axis), # telling it where the arrows start and ends
+               arrow = arrow(length = unit(.25, 'cm'))) + #size and length of the arrows 
+  geom_text(data = loadings_df, # this is taking the loadings_df to label the arrows in which they corresponds
+            aes(x = PC1, y = PC2, label = axis)) +
+  theme_minimal()
+```
+
+
+```{r}
+autoplot(hdi_pca, # making our ggplot more specific with 
+        data = hdi_data,
+                    loadings = TRUE,
+                    colour = 'hdicode',
+                    loadings.label = TRUE,
+                    loadings.colour = 'black',
+                    loadings.label.colour = 'black',
+                    loadings.label.vjust = -0.5) +
+  scale_color_manual(values = c('red', 'orange', 'yellowgreen', 'darkgreen')) +
+  theme_minimal()
+
+# this allows us to see more clear patterns in our data 
+```
+
+
+
+## Screeplot by hand
+ 
+```{r}
+sd_vec <- hdi_pca$sdev
+var_vec <- sd_vec^2
+pc_names <- colnames(hdi_pca$rotation) # getting the column names in the hdi_pca data frame 
+
+# New data frame calculating percent variance for all the rotations
+pct_expl_df <- data.frame(v = var_vec,
+                          pct_v = var_vec / sum(var_vec),
+                          pc = fct_inorder(pc_names)) %>%
+  mutate(pct_lbl = paste0(round(pct_v * 100, 1), '%')) # label with the number %
+
+# Making a ggplot
+ggplot(pct_expl_df,
+       aes(x= pc, y = v)) +
+  geom_col() +
+  geom_text(aes(label = pct_lbl), vjust = 0, nudge_y = .002) +
+  labs(x = 'Principal Component', y = 'Variance explained')
+```
+
+
+### Built in screeplot
+```{r}
+screeplot(hdi_pca, type = 'lines')
+screeplot(hdi_pca, type = 'barplot')
+```
+

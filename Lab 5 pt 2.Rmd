@@ -1,0 +1,53 @@
+---
+title: "ggplot customization, reading files"
+author: "Alessandra Puig-Santana"
+date: "2023-02-09"
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, echo = TRUE, warning = FALSE, message = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+library(tidyverse)
+library(here)
+library(readxl)
+library(gghighlight)
+library(lubridate)
+library(plotly)
+```
+
+### Read un excel file, wrangle the data
+```{r}
+fish_noaa <- readxl::read_excel(here('data', 'foss_landings.xlsx')) %>%
+  janitor::clean_names() %>% 
+  mutate(across(where(is.character), tolower)) %>%  # changing from upper case to lowercase for everything that is a character
+  mutate(nmfs_name = str_sub(nmfs_name, end = -4)) %>%
+  filter(confidentiality == 'public)
+
+```
+
+
+# Read data from web
+```{r}
+monroe_wt <- read_csv('https://raw.githubusercontent.com/oharac/esm244_w2023_lab5/master/data/MWTP_Elec_Daily.csv') %>%
+  janitor::clean_names()
+
+monrow_ts <- monroe_wt %>%
+  mutate(date = lubridate::mdy(date)) %>%
+  mutate(record_month = lubridate::month(date)) %>%
+  mutate(month_name = month.abb[record_month]) %>% #month.abb = abbreviated month name, month.name = full name of month
+  mutate(month_name = fct_reorder(month_name, record_month)) #take month name column and organize them by the record month and replace it with a column called month_name
+
+# Plotting
+ggplot(data = monrow_ts,
+       aes(x = month_name, y = total_kwh)) +
+  geom_jitter(aes(color = month_name),
+              show.legend = FALSE,
+              alpha = 0.5,
+              size = 0.3,
+              width = 0.2) +
+  theme_classic()
+```
+
